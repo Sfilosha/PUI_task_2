@@ -1,0 +1,117 @@
+{
+  "version": 1,
+  "author": "Anonymous maker",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "wokwi-pi-pico",
+      "id": "pico",
+      "top": 0,
+      "left": 0,
+      "attrs": { "env": "micropython-20260406-v1.28.0" }
+    },
+    {
+      "type": "board-ssd1306",
+      "id": "lcd",
+      "top": 233.54,
+      "left": -162.97,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-membrane-keypad",
+      "id": "keypad",
+      "top": -136.4,
+      "left": -292,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_r",
+      "top": -13.2,
+      "left": 147.8,
+      "attrs": { "color": "red" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_g",
+      "top": -13.2,
+      "left": 186.2,
+      "attrs": { "color": "green" }
+    },
+    {
+      "type": "wokwi-led",
+      "id": "led_b",
+      "top": -13.2,
+      "left": 224.6,
+      "attrs": { "color": "blue" }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "buzzer",
+      "top": -103.2,
+      "left": 145.8,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-servo",
+      "id": "servo",
+      "top": 65.2,
+      "left": 278.4,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn_presence",
+      "top": -166.6,
+      "left": 134.4,
+      "attrs": { "color": "green", "label": "Presence" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn_tamper",
+      "top": -233.8,
+      "left": 144,
+      "attrs": { "color": "red", "label": "Tamper" }
+    },
+    {
+      "type": "wokwi-slide-switch",
+      "id": "sw_key",
+      "top": 52.4,
+      "left": 147.1,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    ["pico:GP4", "lcd:SDA", "green", ["v0"]],
+    ["pico:GP5", "lcd:SCL", "green", ["v0"]],
+    ["pico:3V3", "lcd:VCC", "red", ["v0"]],
+    ["pico:GND", "lcd:GND", "black", ["v0"]],
+    ["pico:GP9", "keypad:R1", "orange", ["v0"]],
+    ["pico:GP10", "keypad:R2", "orange", ["v0"]],
+    ["pico:GP11", "keypad:R3", "orange", ["v0"]],
+    ["pico:GP12", "keypad:R4", "orange", ["v0"]],
+    ["pico:GP13", "keypad:C1", "cyan", ["v0"]],
+    ["pico:GP14", "keypad:C2", "cyan", ["v0"]],
+    ["pico:GP15", "keypad:C3", "cyan", ["v0"]],
+    ["pico:GP16", "keypad:C4", "cyan", ["v0"]],
+    ["pico:GP18", "led_r:A", "red", ["v0"]],
+    ["pico:GND", "led_r:C", "black", ["v0"]],
+    ["pico:GP19", "led_g:A", "green", ["v0"]],
+    ["pico:GND", "led_g:C", "black", ["v0"]],
+    ["pico:GP20", "led_b:A", "blue", ["v0"]],
+    ["pico:GND", "led_b:C", "black", ["v0"]],
+    ["pico:GP21", "servo:PWM", "orange", ["v0"]],
+    ["pico:3V3", "servo:V+", "red", ["v0"]],
+    ["pico:GND", "servo:GND", "black", ["v0"]],
+    ["pico:GP22", "buzzer:1", "purple", ["v0"]],
+    ["pico:GND", "buzzer:2", "black", ["v0"]],
+    ["pico:GP2", "btn_presence:2.l", "gray", ["v0"]],
+    ["pico:3V3", "btn_presence:1.l", "red", ["v0"]],
+    ["pico:GP3", "btn_tamper:2.l", "gray", ["v0"]],
+    ["pico:3V3", "btn_tamper:1.l", "red", ["v0"]],
+    ["pico:GP26", "sw_key:2", "gray", ["v0"]],
+    ["pico:3V3", "sw_key:3", "red", ["v0"]],
+    ["pico:GND", "sw_key:1", "black", ["v0"]]
+  ],
+  "dependencies": {}
+}

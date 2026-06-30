@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AI Door Lock Prototype with Console</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #222;
+        margin: 0;
+        color: white;
+      }
+      #main-container {
+        display: flex;
+        gap: 30px;
+        align-items: flex-start;
+      }
+      .left-column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      #lock-panel {
+        width: 300px;
+        height: 450px;
+        background-color: #333;
+        border-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        transition: background-color 0.3s;
+      }
+      .hidden {
+        display: none !important;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 5px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        background: #555;
+        color: white;
+        font-weight: bold;
+        width: 90%;
+      }
+      button:hover {
+        background: #777;
+      }
+      hr {
+        border: 0;
+        border-top: 1px solid #555;
+        width: 100%;
+        margin: 15px 0;
+      }
+      #controls {
+        margin-top: 30px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 10px;
+        width: 350px;
+      }
+      .control-btn {
+        background: #007bff;
+        width: auto;
+      }
+
+      /* Console Styles */
+      #console-container {
+        width: 450px;
+        height: 600px;
+        background-color: #111;
+        border-radius: 12px;
+        border: 1px solid #444;
+        display: flex;
+        flex-direction: column;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+      }
+      #console-header {
+        background: #000;
+        padding: 10px 20px;
+        border-bottom: 1px solid #444;
+        border-radius: 12px 12px 0 0;
+        font-family: monospace;
+        color: #00ff00;
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+      }
+      #console-output {
+        padding: 15px;
+        margin: 0;
+        overflow-y: auto;
+        flex-grow: 1;
+        font-family: monospace;
+        color: #a8cc8c;
+        font-size: 13px;
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1 style="position: absolute; top: 10px">AI Door Lock Prototype</h1>
+    <div id="main-container">
+      <div class="left-column">
+        <div id="lock-panel">
+          <h2 id="status-text">LOCKED_IDLE</h2>
+          <p id="desc-text">Очікування...</p>
+          <div id="pin-pad" class="hidden">
+            <button onclick="enterPin('1234')">PIN: 1234 (Норма)</button>
+            <button onclick="enterPin('9999')">PIN: 9999 (Помилка)</button>
+            <button onclick="enterPin('1234_NIGHT')">PIN: 1234 (Ніч)</button>
+            <hr />
+            <button onclick="scanNFC()" style="background: #17a2b8">
+              NFC: Картка резидента
+            </button>
+          </div>
+        </div>
+
+        <div id="controls">
+          <button class="control-btn" onclick="triggerPresence()">
+            Підійти до дверей
+          </button>
+          <button
+            class="control-btn"
+            style="background: #dc3545"
+            onclick="triggerSafeMode()"
+          >
+            Аварія (Злом)
+          </button>
+          <button
+            class="control-btn"
+            style="background: #28a745"
+            onclick="triggerManualKey()"
+          >
+            Механічний ключ
+          </button>
+          <button
+            class="control-btn"
+            style="background: #6c757d"
+            onclick="resetLock()"
+          >
+            Скинути (Reset)
+          </button>
+        </div>
+      </div>
+
+      <div id="console-container">
+        <div id="console-header">
+          <span>AI_SYSTEM_LOG</span>
+          <span>v1.2</span>
+        </div>
+        <pre id="console-output"></pre>
+      </div>
+    </div>
+
+    <script>
+      const panel = document.getElementById("lock-panel");
+      const statusText = document.getElementById("status-text");
+      const descText = document.getElementById("desc-text");
+      const pinPad = document.getElementById("pin-pad");
+      const consoleOutput = document.getElementById("console-output");
+      let failCount = 0;
+
+      function logJson(
+        event,
+        state,
+        userId,
+        aiAnalysis,
+        action,
+        fallback = false,
+      ) {
+        const payload = {
+          event: event,
+          state: state,
+          user_id: userId,
+          timestamp: new Date().toISOString(),
+          ai_analysis: aiAnalysis,
+          action: action,
+          fallback: fallback,
+          schema_version: "v1.2",
+        };
+
+        const jsonString = JSON.stringify(payload, null, 2);
+        consoleOutput.textContent =
+          jsonString +
+          "\n\n--------------------------\n\n" +
+          consoleOutput.textContent;
+      }
+
+      function updateState(state, desc, bgColor, showPad = false) {
+        statusText.innerText = state;
+        descText.innerText = desc;
+        panel.style.backgroundColor = bgColor;
+        showPad
+          ? pinPad.classList.remove("hidden")
+          : pinPad.classList.add("hidden");
+      }
+
+      function triggerPresence() {
+        if (
+          statusText.innerText === "LOCKED_IDLE" ||
+          statusText.innerText === "ACCESS_DENIED"
+        ) {
+          updateState("PRESENCE_DETECTED", "Введіть PIN або NFC", "#444", true);
+        }
+      }
+
+      function scanNFC() {
+        updateState("AI_CHECK", "Зчитування NFC...", "#856404", false);
+
+        setTimeout(() => {
+          failCount = 0;
+          updateState("ACCESS_GRANTED", "NFC розпізнано", "#28a745", false);
+
+          logJson(
+            "NFC_SCANNED",
+            "AUTH_INPUT",
+            "cowork_res_402",
+            {
+              confidence: 0.95,
+              anomaly_reason: "none",
+              ai_result: "normal_attempt",
+            },
+            "ACCESS_GRANTED",
+          );
+
+          setTimeout(() => {
+            updateState("DOOR_OPEN", "Двері відчинено", "#20c997", false);
+            setTimeout(() => {
+              updateState(
+                "AUTO_RELOCK",
+                "Замикання механізму...",
+                "#17a2b8",
+                false,
+              );
+              setTimeout(
+                () =>
+                  updateState("LOCKED_IDLE", "Очікування...", "#333", false),
+                1500,
+              );
+            }, 3000);
+          }, 1500);
+        }, 1500);
+      }
+
+      function enterPin(type) {
+        updateState("AI_CHECK", "Аналіз контексту...", "#856404", false);
+
+        setTimeout(() => {
+          if (type === "1234") {
+            failCount = 0;
+            updateState("ACCESS_GRANTED", "Доступ дозволено", "#28a745", false);
+
+            logJson(
+              "PIN_ENTERED",
+              "AUTH_INPUT",
+              "cowork_res_402",
+              {
+                confidence: 0.92,
+                anomaly_reason: "none",
+                ai_result: "normal_attempt",
+              },
+              "ACCESS_GRANTED",
+            );
+
+            setTimeout(() => {
+              updateState("DOOR_OPEN", "Двері відчинено", "#20c997", false);
+              setTimeout(() => {
+                updateState(
+                  "AUTO_RELOCK",
+                  "Замикання механізму...",
+                  "#17a2b8",
+                  false,
+                );
+                setTimeout(
+                  () =>
+                    updateState("LOCKED_IDLE", "Очікування...", "#333", false),
+                  1500,
+                );
+              }, 3000);
+            }, 1500);
+          } else if (type === "1234_NIGHT") {
+            updateState(
+              "ACCESS_DENIED",
+              "AI: Підозрілий час входу. Відмова.",
+              "#dc3545",
+              false,
+            );
+
+            logJson(
+              "PIN_ENTERED",
+              "AUTH_INPUT",
+              "cowork_res_402",
+              {
+                confidence: 0.35,
+                anomaly_reason: "unusual_time_for_user",
+                ai_result: "suspicious_attempt",
+              },
+              "ACCESS_DENIED",
+            );
+
+            setTimeout(
+              () => updateState("LOCKED_IDLE", "Очікування...", "#333", false),
+              3000,
+            );
+          } else {
+            failCount++;
+            if (failCount >= 3) {
+              updateState("LOCKOUT", "Заблоковано на 10 сек", "#ff9800", false);
+
+              logJson(
+                "PIN_ENTERED",
+                "AUTH_INPUT",
+                "unknown_user",
+                {
+                  confidence: 0.05,
+                  anomaly_reason: "brute_force_detected",
+                  ai_result: "malicious_attempt",
+                },
+                "LOCKOUT",
+              );
+
+              setTimeout(() => {
+                failCount = 0;
+                resetLock();
+              }, 10000);
+            } else {
+              updateState(
+                "ACCESS_DENIED",
+                `Невірний PIN (${failCount}/3)`,
+                "#dc3545",
+                false,
+              );
+
+              logJson(
+                "PIN_ENTERED",
+                "AUTH_INPUT",
+                "unknown_user",
+                {
+                  confidence: 0.15,
+                  anomaly_reason: "invalid_credentials",
+                  ai_result: "rejected",
+                },
+                "ACCESS_DENIED",
+              );
+
+              setTimeout(triggerPresence, 2000);
+            }
+          }
+        }, 1500);
+      }
+
+      function triggerSafeMode() {
+        updateState("SAFE_MODE", "СИСТЕМУ ЗАБЛОКОВАНО", "#8b0000", false);
+        logJson(
+          "TAMPER_DETECTED",
+          "SAFE_MODE",
+          "system",
+          {
+            confidence: 0.99,
+            anomaly_reason: "physical_force",
+            ai_result: "critical_threat",
+          },
+          "TRIGGER_ALARM",
+        );
+      }
+
+      function triggerManualKey() {
+        updateState(
+          "DOOR_OPEN",
+          "Відкрито ключем (Обхід AI)",
+          "#17a2b8",
+          false,
+        );
+        logJson(
+          "MANUAL_KEY_USED",
+          "OVERRIDE",
+          "admin_or_emergency",
+          null,
+          "ACCESS_GRANTED",
+          true,
+        );
+        setTimeout(resetLock, 4000);
+      }
+
+      function resetLock() {
+        updateState("LOCKED_IDLE", "Очікування...", "#333", false);
+      }
+    </script>
+  </body>
+</html>
